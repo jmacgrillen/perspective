@@ -41,13 +41,12 @@ class EXIFData(object):
             for (tag, val) in self.exif_data.items():
                 # The MakerNote is in multiple proprietary binary formats
                 # with some that can't be decoded. Ignore it.
-                tag_label = TAGS.get(key=tag, default=tag)
+                tag_label = TAGS.get(tag, tag)
                 if tag_label == "GPSInfo":
                     self.logger.info("Found GPS data. Decoding...")
                     gps_data: dict = {}
                     for gps_item in val:
-                        gps_decoded = GPSTAGS.get(key=gps_item,
-                                                  default=gps_item)
+                        gps_decoded = GPSTAGS.get(gps_item, gps_item)
                         gps_data[gps_decoded] = val[gps_item]
                     labeled[tag_label] = gps_data
                 elif tag_label != "MakerNote":

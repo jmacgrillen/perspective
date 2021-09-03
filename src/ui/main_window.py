@@ -18,6 +18,7 @@ import tkinter as tk
 # from tkinter import filedialog as file_dialog
 import logging
 from maclib.ui.main_window import MacWindow
+from src.ui.exif_view import EXIFView
 from src.it_image import ITImage
 
 
@@ -28,6 +29,8 @@ class MainWindow(object):
     main_window: MacWindow
     menu_bar: tk.Menu
     main_app: tk.Tk
+    main_canvas: tk.Canvas
+    exif_view: EXIFView
     default_status: str = "Ready"
     logger: logging.Logger = logging.getLogger(name='it_logger')
 
@@ -35,16 +38,19 @@ class MainWindow(object):
         """
         Create and run the main window for WAD Walker.
         """
+        super().__init__()
         self.create_window()
-        i_image = ITImage()
-        i_image.load_image('IMG_2902.JPG')
         self.run()
 
     def do_nothing(self) -> None:
         """
         A function that literally does nothing.
         """
-        pass
+        i_image = ITImage()
+        i_image.load_image('IMG_2902.JPG')
+        self.exif_view.add_data(i_image.exif_data)
+        self.main_canvas.create_image(0, 0, image=i_image.tk_image)
+        self.main_canvas.update()
 
     def create_file_menu(self) -> tk.Menu:
         """
@@ -69,6 +75,17 @@ class MainWindow(object):
         file_menu = self.create_file_menu()
         self.main_window.menu_bar.add_cascade(label="File",
                                               menu=file_menu)
+        # Add the main drawing canvas
+        self.main_canvas = tk.Canvas(
+            master=self.main_window.main_content,
+            bg='#fff')
+        self.main_canvas.grid(row=0, column=0, sticky='nsew')
+        self.main_window.main_content.grid_columnconfigure(index=0, weight=1)
+
+        # Add exif data frame
+        self.exif_view = EXIFView(self.main_window.main_content)
+        self.exif_view.grid(row=0, column=1, sticky='ns')
+        self.main_window.main_content.grid_columnconfigure(index=1, weight=0)
 
     def run(self) -> None:
         """

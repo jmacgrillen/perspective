@@ -21,6 +21,7 @@ class EXIFData(object):
     Handle any EXIF data associated with the image.
     """
     logger: logging.Logger = logging.getLogger(name='it_logger')
+    has_data: bool
     exif_data: dict
     lat: float
     long: float
@@ -36,8 +37,10 @@ class EXIFData(object):
         self.exif_data = image_data._getexif()
         if not self.exif_data:
             self.logger.debug("Image does not have any attached EXIF data.")
+            self.has_data = False
         else:
             self.logger.debug("Found EXIF data. Attempting decode...")
+            self.has_data = True
             for (tag, val) in self.exif_data.items():
                 # The MakerNote is in multiple proprietary binary formats
                 # with some that can't be decoded. Ignore it.

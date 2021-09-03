@@ -13,6 +13,7 @@
 """
 import logging
 import maclib.mac_logger as mlogger
+from maclib.mac_settings import MacSettingsFile
 import src.image_tools_uris as uris
 from src.ui.main_window import MainWindow
 
@@ -29,6 +30,9 @@ def main():
         log_file_uri=it_logfile,
         logging_level=logging.DEBUG,
         logger_name="it_logger")
+    #it_settings = MacSettingsFile(
+    #    yaml_file_directory=uris.it_settings_directory,
+    #    yaml_file=uris.it_settings_file_name)
 
     MainWindow()
 

@@ -13,32 +13,78 @@
         Copyright (c) John MacGrillen. All rights reserved.
 """
 
-import tkinter as tk
-# import tkinter.ttk as ttk
-# from tkinter import filedialog as file_dialog
+import PyQt5.QtCore as QtCore
+from PyQt5.QtWidgets import QApplication, QAction
+from src.perspective_image import PerspectiveImage
 import logging
-from maclib.ui.main_window import MacWindow
-from src.ui.exif_view import EXIFView
-from src.it_image import ITImage
+import maclib.mac_logger as mac_logger
+from PyQt5.QtWidgets import QMainWindow, QMenuBar, QStatusBar
+import qdarkstyle
+from src.perspective_settings import PerspecitveSettings
+from maclib.mac_detect import MacDetect
+
+
+class MacWindow(QMainWindow):
+    """
+    Base window for mac_lib ui
+    """
+    menu_bar: QMenuBar
+    status_bar: QStatusBar
+    scaling_ratio: float
+    mac_detect: MacDetect
+    perspective_settings: PerspecitveSettings
+
+    def __init__(self,
+                 window_name: str,
+                 main_app: QApplication,
+                 window_width: int = 800,
+                 window_height: int = 600,
+                 window_icon: object = None,
+                 *args,
+                 **kwargs):
+        """
+        Create a QT main window
+        """
+        super(MacWindow, self).__init__(*args, **kwargs)
+        self.mac_detect = MacDetect()
+        self.perspective_settings = PerspecitveSettings()
+        if self.perspective_settings.app_settings['ui']['theme'] == 'system':
+            if self.mac_detect.os_theme == "Dark":
+                main_app.setStyleSheet(qdarkstyle.load_stylesheet(
+                    qt_api='pyqt5'))
+            else:
+                pass
+        elif self.perspective_settings.app_settings['ui']['theme'] == 'dark':
+            main_app.setStyleSheet(qdarkstyle.load_stylesheet(qt_api='pyqt5'))
+        else:
+            pass
+        self.setWindowTitle(window_name)
+        self.resize(window_width, window_height)
+        self.status_bar = self.statusBar()
+        self.menu_bar = self.menuBar()
+        self.show()
 
 
 class MainWindow(object):
     """
     This is the main window that controls image_tools.
     """
+    main_app: QApplication
     main_window: MacWindow
-    menu_bar: tk.Menu
-    main_app: tk.Tk
-    main_canvas: tk.Canvas
-    exif_view: EXIFView
     default_status: str = "Ready"
-    logger: logging.Logger = logging.getLogger(name='it_logger')
+    logger: logging.Logger
 
     def __init__(self):
         """
         Create and run the main window for WAD Walker.
         """
-        super().__init__()
+        super(MainWindow, self).__init__()
+        self.logger = logging.getLogger(name=mac_logger.LOGGER_NAME)
+        # Handle high dpi display scaling
+        if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
+            QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
+        if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
+            QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
         self.create_window()
         self.run()
 
@@ -46,51 +92,45 @@ class MainWindow(object):
         """
         A function that literally does nothing.
         """
-        i_image = ITImage()
-        i_image.load_image('IMG_2902.JPG')
-        self.exif_view.add_data(i_image.exif_data)
-        self.main_canvas.create_image(0, 0, image=i_image.tk_image)
-        self.main_canvas.update()
+        self.main_window.status_bar.showMessage("Loading image")
+        p_image = PerspectiveImage()
+        p_image.load_image('IMG_2902.JPG')
+        self.main_window.status_bar.showMessage("Image loaded successfully")
 
-    def create_file_menu(self) -> tk.Menu:
+    def create_file_menu(self) -> None:
         """
         Create the main file menu
         """
-        filemenu = tk.Menu(self.main_window.menu_bar, tearoff=0)
-        filemenu.add_command(label="Open", command=self.do_nothing)
-        filemenu.add_separator()
-        filemenu.add_command(label="Exit", command=self.main_app.quit)
-        return filemenu
+        open_action = QAction('&Open', self.main_window)
+        open_action.setShortcut('Ctrl+O')
+        open_action.setStatusTip('Open an image')
+        open_action.triggered.connect(self.do_nothing)
+
+        quit_action = QAction('&Quit', self.main_window)
+        quit_action.setShortcut('Ctrl+Q')
+        quit_action.setStatusTip('Quit application')
+        quit_action.triggered.connect(self.main_app.quit)
+
+        file_menu = self.main_window.menu_bar.addMenu('&File')
+        file_menu.addAction(open_action)
+        file_menu.addAction(quit_action)
 
     def create_window(self) -> None:
         """
         Create the main WAD Walker window.
         """
-        self.main_app = tk.Tk()
-        self.main_app.title("Image Tools")
-        self.main_window = MacWindow(parent=self.main_app)
-        self.main_window.add_status_bar(self.default_status)
-        # Add the menus to the window
-        self.main_window.add_menu_bar()
-        file_menu = self.create_file_menu()
-        self.main_window.menu_bar.add_cascade(label="File",
-                                              menu=file_menu)
-        # Add the main drawing canvas
-        self.main_canvas = tk.Canvas(
-            master=self.main_window.main_content,
-            bg='#fff')
-        self.main_canvas.grid(row=0, column=0, sticky='nsew')
-        self.main_window.main_content.grid_columnconfigure(index=0, weight=1)
-
-        # Add exif data frame
-        self.exif_view = EXIFView(self.main_window.main_content)
-        self.exif_view.grid(row=0, column=1, sticky='ns')
-        self.main_window.main_content.grid_columnconfigure(index=1, weight=0)
+        self.main_app = QApplication([])
+        self.main_window = MacWindow("Perspective", self.main_app)
+        self.create_file_menu()
 
     def run(self) -> None:
         """
         Run the main window
         """
         # Now show and run the window.
-        self.logger.debug("Starting the main loop.")
-        self.main_window.mainloop()
+        self.logger.debug("Starting the main application loop.")
+        self.main_app.exec()
+
+
+if __name__ == "__main__":
+    pass

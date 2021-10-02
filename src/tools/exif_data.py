@@ -13,6 +13,7 @@
 """
 from typing import Any, Optional
 import logging
+import maclib.mac_logger as mac_logger
 from PIL.ExifTags import TAGS, GPSTAGS
 
 
@@ -20,7 +21,7 @@ class EXIFData(object):
     """
     Handle any EXIF data associated with the image.
     """
-    logger: logging.Logger = logging.getLogger(name='it_logger')
+    logger: logging.Logger
     has_data: bool
     exif_data: dict
     lat: float
@@ -33,6 +34,7 @@ class EXIFData(object):
         """
         super().__init__()
         labeled: dict = {}
+        self.logger = logging.getLogger(name=mac_logger.LOGGER_NAME)
         self.logger.debug("Attempting to extract EXIF data.")
         self.exif_data = image_data._getexif()
         if not self.exif_data:

@@ -26,14 +26,14 @@ install_requirements = [
 ]
 
 
-def setup_image_tools_package() -> None:
+def setup_perspective_package() -> None:
     """
-    Install and configure the mac_lib package for use
+    Install and configure Perspective for use
     """
     setup(
-        name='image-tools',
+        name='Perspective',
         version="0.0.1",
-        description='A set of image analysis tools',
+        description='Analyse images using the range of tools provided',
         long_description=long_description,
         author='J.MacGrillen',
         scripts=[],
@@ -54,4 +54,4 @@ def setup_image_tools_package() -> None:
 
 
 if __name__ == "__main__":
-    setup_image_tools_package()
+    setup_perspective_package()

@@ -1,3 +1,3 @@
-# image_tools
+# Perspective
 
-A set of tools used to analyse pictures
+Prespective is a tool allowing the user to analyse a given image.

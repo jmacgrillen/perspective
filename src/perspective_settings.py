@@ -88,6 +88,14 @@ class PerspecitveSettings(object, metaclass=MacSingleInstance):
         except Exception as err:
             self.mac_logger.error("Unable to save settings. {0}", err)
 
+    def key_exists(self, key_name: str) -> bool:
+        """
+        Check whether the key exists.
+        """
+        if key_name in self.app_settings.keys():
+            return True
+        return False
+
 
 if __name__ == "__main__":
     pass

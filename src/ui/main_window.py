@@ -48,6 +48,7 @@ class MacWindow(QMainWindow):
         super(MacWindow, self).__init__(*args, **kwargs)
         self.mac_detect = MacDetect()
         self.perspective_settings = PerspecitveSettings()
+        # Decide whether to use the light or dark theme.
         if self.perspective_settings.app_settings['ui']['theme'] == 'system':
             if self.mac_detect.os_theme == "Dark":
                 main_app.setStyleSheet(qdarkstyle.load_stylesheet(
@@ -59,7 +60,19 @@ class MacWindow(QMainWindow):
         else:
             pass
         self.setWindowTitle(window_name)
-        self.resize(window_width, window_height)
+        # If the window position has been saved in settings, use them to
+        # set the position on the window.
+        if self.perspective_settings.key_exists('window'):
+            self.move(
+                self.perspective_settings.app_settings['window']['x_coord'],
+                self.perspective_settings.app_settings['window']['y_coord']
+            )
+            self.resize(
+                self.perspective_settings.app_settings['window']['width'],
+                self.perspective_settings.app_settings['window']['height']
+            )
+        else:
+            self.resize(window_width, window_height)
         self.status_bar = self.statusBar()
         self.menu_bar = self.menuBar()
         self.show()
@@ -73,6 +86,7 @@ class MainWindow(object):
     main_window: MacWindow
     default_status: str = "Ready"
     logger: logging.Logger
+    perspective_settings: PerspecitveSettings
 
     def __init__(self):
         """
@@ -85,6 +99,7 @@ class MainWindow(object):
             QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
         if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
             QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
+        self.perspective_settings = PerspecitveSettings()
         self.create_window()
         self.run()
 
@@ -96,6 +111,22 @@ class MainWindow(object):
         p_image = PerspectiveImage()
         p_image.load_image('IMG_2902.JPG')
         self.main_window.status_bar.showMessage("Image loaded successfully")
+
+    def quit_application(self) -> None:
+        """
+        Update the settings with the window geometry.
+        """
+        self.perspective_settings.app_settings['window'] = dict()
+        self.perspective_settings.app_settings[
+            'window']['width'] = self.main_window.width()
+        self.perspective_settings.app_settings[
+            'window']['height'] = self.main_window.height()
+        self.perspective_settings.app_settings[
+            'window']['x_coord'] = self.main_window.x()
+        self.perspective_settings.app_settings[
+            'window']['y_coord'] = self.main_window.y()
+        self.perspective_settings.save_settings()
+        self.main_app.quit()
 
     def create_file_menu(self) -> None:
         """
@@ -109,7 +140,7 @@ class MainWindow(object):
         quit_action = QAction('&Quit', self.main_window)
         quit_action.setShortcut('Ctrl+Q')
         quit_action.setStatusTip('Quit application')
-        quit_action.triggered.connect(self.main_app.quit)
+        quit_action.triggered.connect(self.quit_application)
 
         file_menu = self.main_window.menu_bar.addMenu('&File')
         file_menu.addAction(open_action)

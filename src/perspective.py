@@ -26,8 +26,16 @@ def create_default_settings():
     """
     global perspective_settings
 
+    # UI theme
     perspective_settings.app_settings['ui'] = dict()
     perspective_settings.app_settings['ui']['theme'] = "system"
+    # Default window settings
+    perspective_settings.app_settings['window'] = dict()
+    perspective_settings.app_settings['window']['save_pos'] = "True"
+    perspective_settings.app_settings['window']['x_coord'] = 60
+    perspective_settings.app_settings['window']['y_coord'] = 60
+    perspective_settings.app_settings['window']['width'] = 800
+    perspective_settings.app_settings['window']['height'] = 600
     perspective_settings.save_settings()
 
 

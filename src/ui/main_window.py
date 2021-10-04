@@ -14,6 +14,7 @@
 """
 
 import PyQt5.QtCore as QtCore
+import PyQt5.QtGui as QtGui
 from PyQt5.QtWidgets import QApplication, QAction
 from src.perspective_image import PerspectiveImage
 import logging
@@ -32,6 +33,7 @@ class MacWindow(QMainWindow):
     status_bar: QStatusBar
     scaling_ratio: float
     mac_detect: MacDetect
+    logger: logging.Logger
     perspective_settings: PerspecitveSettings
 
     def __init__(self,
@@ -46,36 +48,69 @@ class MacWindow(QMainWindow):
         Create a QT main window
         """
         super(MacWindow, self).__init__(*args, **kwargs)
+        self.logger = logging.getLogger(name=mac_logger.LOGGER_NAME)
         self.mac_detect = MacDetect()
         self.perspective_settings = PerspecitveSettings()
         # Decide whether to use the light or dark theme.
         if self.perspective_settings.app_settings['ui']['theme'] == 'system':
+            self.logger.debug("Using system UI theme...")
             if self.mac_detect.os_theme == "Dark":
                 main_app.setStyleSheet(qdarkstyle.load_stylesheet(
                     qt_api='pyqt5'))
             else:
                 pass
         elif self.perspective_settings.app_settings['ui']['theme'] == 'dark':
+            self.logger.debug("Enabling dark theme from saved setting.")
             main_app.setStyleSheet(qdarkstyle.load_stylesheet(qt_api='pyqt5'))
         else:
-            pass
+            self.logger.debug("Using default light theme.")
         self.setWindowTitle(window_name)
         # If the window position has been saved in settings, use them to
         # set the position on the window.
         if self.perspective_settings.key_exists('window'):
-            self.move(
-                self.perspective_settings.app_settings['window']['x_coord'],
-                self.perspective_settings.app_settings['window']['y_coord']
-            )
-            self.resize(
-                self.perspective_settings.app_settings['window']['width'],
-                self.perspective_settings.app_settings['window']['height']
-            )
+            if self.perspective_settings.app_settings[
+                            'window']['save_pos'] == "True":
+                self.logger.debug(
+                    "Using settings to place window and set size.")
+                self.move(
+                    self.perspective_settings.app_settings[
+                        'window']['x_coord'],
+                    self.perspective_settings.app_settings[
+                        'window']['y_coord']
+                )
+                self.resize(
+                    self.perspective_settings.app_settings[
+                        'window']['width'],
+                    self.perspective_settings.app_settings[
+                        'window']['height']
+                )
+            else:
+                self.resize(window_width, window_height)
         else:
             self.resize(window_width, window_height)
         self.status_bar = self.statusBar()
         self.menu_bar = self.menuBar()
         self.show()
+
+    def save_window_geometry(self) -> None:
+        """
+        Save the window position to the settings file.
+        """
+        self.logger.debug("Saving window coords before closing app")
+        self.perspective_settings.app_settings[
+            'window']['width'] = self.width()
+        self.perspective_settings.app_settings[
+            'window']['height'] = self.height()
+        self.perspective_settings.app_settings[
+            'window']['x_coord'] = self.x()
+        self.perspective_settings.app_settings[
+            'window']['y_coord'] = self.y()
+        self.perspective_settings.save_settings()
+
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        self.logger.debug("User pressed the window close button.")
+        self.save_window_geometry()
+        return super().closeEvent(a0)
 
 
 class MainWindow(object):
@@ -103,29 +138,26 @@ class MainWindow(object):
         self.create_window()
         self.run()
 
-    def do_nothing(self) -> None:
+    def load_image(self) -> None:
         """
-        A function that literally does nothing.
+        Load an image.
         """
         self.main_window.status_bar.showMessage("Loading image")
         p_image = PerspectiveImage()
         p_image.load_image('IMG_2902.JPG')
         self.main_window.status_bar.showMessage("Image loaded successfully")
 
+    def do_nothing(self) -> None:
+        """
+        Literlly do nothing!
+        """
+        self.logger.debug("I ain't doin' nuffink.")
+
     def quit_application(self) -> None:
         """
         Update the settings with the window geometry.
         """
-        self.perspective_settings.app_settings['window'] = dict()
-        self.perspective_settings.app_settings[
-            'window']['width'] = self.main_window.width()
-        self.perspective_settings.app_settings[
-            'window']['height'] = self.main_window.height()
-        self.perspective_settings.app_settings[
-            'window']['x_coord'] = self.main_window.x()
-        self.perspective_settings.app_settings[
-            'window']['y_coord'] = self.main_window.y()
-        self.perspective_settings.save_settings()
+        self.main_window.save_window_geometry()
         self.main_app.quit()
 
     def create_file_menu(self) -> None:
@@ -135,7 +167,7 @@ class MainWindow(object):
         open_action = QAction('&Open', self.main_window)
         open_action.setShortcut('Ctrl+O')
         open_action.setStatusTip('Open an image')
-        open_action.triggered.connect(self.do_nothing)
+        open_action.triggered.connect(self.load_image)
 
         quit_action = QAction('&Quit', self.main_window)
         quit_action.setShortcut('Ctrl+Q')
@@ -146,6 +178,18 @@ class MainWindow(object):
         file_menu.addAction(open_action)
         file_menu.addAction(quit_action)
 
+    def create_edit_menu(self) -> None:
+        """
+        Create the main Edit menu
+        """
+        settings_action = QAction('&Settings', self.main_window)
+        settings_action.setShortcut('Ctrl+S')
+        settings_action.setStatusTip('Adjust application settings')
+        settings_action.triggered.connect(self.do_nothing)
+
+        file_menu = self.main_window.menu_bar.addMenu('&Edit')
+        file_menu.addAction(settings_action)
+
     def create_window(self) -> None:
         """
         Create the main WAD Walker window.
@@ -153,6 +197,7 @@ class MainWindow(object):
         self.main_app = QApplication([])
         self.main_window = MacWindow("Perspective", self.main_app)
         self.create_file_menu()
+        self.create_edit_menu()
 
     def run(self) -> None:
         """

@@ -13,15 +13,15 @@
         Copyright (c) John MacGrillen. All rights reserved.
 """
 
+import logging
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
-from PyQt5.QtWidgets import QApplication, QAction
-from src.perspective_image import PerspectiveImage
-import logging
+from PyQt5.QtWidgets import QApplication, QAction, QHBoxLayout, QWidget
+from PyQt5.QtWidgets import QMainWindow, QMenuBar, QStatusBar, QFileDialog
 import maclib.mac_logger as mac_logger
-from PyQt5.QtWidgets import QMainWindow, QMenuBar, QStatusBar
 import qdarkstyle
 from src.perspective_settings import PerspecitveSettings
+from src.ui.image_view import PerspectiveImageView
 from maclib.mac_detect import MacDetect
 
 
@@ -90,6 +90,7 @@ class MacWindow(QMainWindow):
             self.resize(window_width, window_height)
         self.status_bar = self.statusBar()
         self.menu_bar = self.menuBar()
+        self.setCentralWidget(QWidget())
         self.show()
 
     def save_window_geometry(self) -> None:
@@ -107,13 +108,14 @@ class MacWindow(QMainWindow):
             'window']['y_coord'] = self.y()
         self.perspective_settings.save_settings()
 
-    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+    def closeEvent(self, close_event: QtGui.QCloseEvent) -> None:
         self.logger.debug("User pressed the window close button.")
         self.save_window_geometry()
-        return super().closeEvent(a0)
+        close_event.accept()
+        return super(MacWindow, self).closeEvent(close_event)
 
 
-class MainWindow(object):
+class PerspectiveWindow(object):
     """
     This is the main window that controls image_tools.
     """
@@ -122,12 +124,14 @@ class MainWindow(object):
     default_status: str = "Ready"
     logger: logging.Logger
     perspective_settings: PerspecitveSettings
+    h_layout: QHBoxLayout
+    image_view: PerspectiveImageView
 
     def __init__(self):
         """
         Create and run the main window for WAD Walker.
         """
-        super(MainWindow, self).__init__()
+        super(PerspectiveWindow, self).__init__()
         self.logger = logging.getLogger(name=mac_logger.LOGGER_NAME)
         # Handle high dpi display scaling
         if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
@@ -143,8 +147,10 @@ class MainWindow(object):
         Load an image.
         """
         self.main_window.status_bar.showMessage("Loading image")
-        p_image = PerspectiveImage()
-        p_image.load_image('IMG_2902.JPG')
+        file_name = QFileDialog.getOpenFileName(filter="Image (*.*)")[0]
+        self.logger.debug(f"Opening file {file_name}")
+        self.image_view = PerspectiveImageView()
+        self.image_view.load_image(file_name)
         self.main_window.status_bar.showMessage("Image loaded successfully")
 
     def do_nothing(self) -> None:
@@ -192,10 +198,17 @@ class MainWindow(object):
 
     def create_window(self) -> None:
         """
-        Create the main WAD Walker window.
+        Create the main Perspective window.
         """
         self.main_app = QApplication([])
         self.main_window = MacWindow("Perspective", self.main_app)
+        central_widget = self.main_window.centralWidget()
+        self.logger.debug("Adding horizontal layout to the main window.")
+        self.h_layout = QHBoxLayout(central_widget)
+        central_widget.setLayout(self.h_layout)
+        self.logger.debug("Adding image view to the layout.")
+        self.image_view = PerspectiveImageView(central_widget)
+        self.h_layout.addWidget(self.image_view)
         self.create_file_menu()
         self.create_edit_menu()
 

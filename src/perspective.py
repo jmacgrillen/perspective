@@ -15,7 +15,7 @@ import logging
 import maclib.mac_logger as mlogger
 from src.perspective_settings import PerspecitveSettings
 import src.perspective_uris as uris
-from src.ui.main_window import MainWindow
+from src.ui.main_window import PerspectiveWindow
 
 perspective_settings = PerspecitveSettings()
 
@@ -26,6 +26,9 @@ def create_default_settings():
     """
     global perspective_settings
 
+    # App logging level
+    perspective_settings.app_settings['app'] = dict()
+    perspective_settings.app_settings['app']['log_level'] = 'INFO'
     # UI theme
     perspective_settings.app_settings['ui'] = dict()
     perspective_settings.app_settings['ui']['theme'] = "system"
@@ -49,15 +52,26 @@ def main():
     perspective_logfile = "{0}/{1}".format(
         uris.perspective_logging_directory,
         uris.perspective_log_file_name)
-    mlogger.configure_logger(
+    logger = mlogger.configure_logger(
         log_file_uri=perspective_logfile,
         logging_level=logging.DEBUG)
 
     perspective_settings.load_settings()
     if len(perspective_settings.app_settings) == 0:
         create_default_settings()
+    if perspective_settings.app_settings['app']['log_level'] == 'DEBUG':
+        logger.setLevel(logging.DEBUG)
+        logger.debug("Logging level set to DEBUG in settings file.")
+    elif perspective_settings.app_settings['app']['log_level'] == 'INFO':
+        logger.setLevel(logging.INFO)
+    elif perspective_settings.app_settings['app']['log_level'] == 'WARN':
+        logger.setLevel(logging.WARN)
+    elif perspective_settings.app_settings['app']['log_level'] == 'ERROR':
+        logger.setLevel(logging.ERROR)
+    elif perspective_settings.app_settings['app']['log_level'] == 'CRITICAL':
+        logger.setLevel(logging.CRITICAL)
 
-    MainWindow()
+    PerspectiveWindow()
 
 
 if __name__ == "__main__":
